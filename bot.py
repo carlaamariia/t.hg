@@ -1555,32 +1555,33 @@ async def perguntar(
     num
 ):
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "✅ Sim",
-                callback_data=f"{num}_sim"
-            ),
-            InlineKeyboardButton(
-                "❌ Não",
-                callback_data=f"{num}_nao"
-            )
-        ]
-    ]
+    # Pega a pergunta atual
+    pergunta_atual = perguntas[num - 1]
 
+    # Pega o texto da pergunta
+    texto_pergunta = pergunta_atual["pergunta"]
+
+    # Cria os botões com as opções da pergunta
+    keyboard = []
+
+    for indice, opcao in enumerate(pergunta_atual["opcoes"]):
+        keyboard.append([
+            InlineKeyboardButton(
+                opcao,
+                callback_data=f"{num}_opcao_{indice}"
+            )
+        ])
 
     await context.bot.send_message(
         chat_id=user_id,
         text=(
-            f"{num}/{len(perguntas)}\n\n"
-            f"{perguntas[num-1]}"
+            f"📚 {num}/{len(perguntas)}\n\n"
+            f"{texto_pergunta}"
         ),
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-
-
-# ================= RESPOSTAS =================
+# ================= RESPOSTAS DA TRIAGEM =================
 
 async def responder(
     update: Update,
@@ -1588,16 +1589,12 @@ async def responder(
 ):
 
     query = update.callback_query
-
     await query.answer()
-
 
     user_id = query.from_user.id
     user_key = k(user_id)
 
-    data = query.data
-
-
+    # Verifica se a triagem está ativa
     if user_key not in usuarios:
 
         await context.bot.send_message(
@@ -1613,19 +1610,54 @@ async def responder(
 
         return
 
-    num, resp = data.split("_")
+    data = query.data
 
+    # Esperado:
+    # 1_opcao_0
+    # 1_opcao_1
+    # 2_opcao_3
+    # etc.
 
-    usuarios[user_key][f"q{num}"] = (
-        "Sim"
-        if resp == "sim"
-        else "Não"
-    )
+    try:
+        partes = data.split("_")
 
+        num = int(partes[0])
+        indice_opcao = int(partes[2])
 
+    except (ValueError, IndexError):
+        return
+
+    # Verifica se a pergunta existe
+    if num < 1 or num > len(perguntas):
+        return
+
+    pergunta_atual = perguntas[num - 1]
+
+    opcoes = pergunta_atual.get("opcoes", [])
+
+    # Verifica se a opção existe
+    if indice_opcao < 0 or indice_opcao >= len(opcoes):
+        return
+
+    resposta = opcoes[indice_opcao]
+
+    # ================= SALVAR RESPOSTA =================
+
+    usuarios[user_key][f"q{num}"] = resposta
+
+    # Também guardamos a pergunta e resposta organizadas
+    if "respostas" not in usuarios[user_key]:
+        usuarios[user_key]["respostas"] = {}
+
+    usuarios[user_key]["respostas"][str(num)] = {
+        "pergunta": pergunta_atual["pergunta"],
+        "resposta": resposta
+    }
+
+    # Atualiza etapa
     usuarios[user_key]["etapa"] = f"q{num}"
 
-
+    # Atualiza status
     if user_key in alunos_entraram_triagem:
 
         alunos_entraram_triagem[user_key]["status"] = (
@@ -1633,12 +1665,19 @@ async def responder(
             f"({num}/{len(perguntas)})"
         )
 
-
     salvar_dados()
 
+    # Remove os botões da pergunta respondida
+    try:
+        await query.edit_message_reply_markup(
+            reply_markup=None
+        )
+    except Exception:
+        pass
 
-    proxima = int(num) + 1
+    # ================= PRÓXIMA PERGUNTA =================
 
+    proxima = num + 1
 
     if proxima <= len(perguntas):
 
@@ -1654,7 +1693,7 @@ async def responder(
             context,
             user_id
         )
-        
+
 # ================= FICHA =================
 
 async def montar_ficha(
@@ -1701,13 +1740,14 @@ async def montar_ficha(
     )
 
 
-    for i in range(1, len(perguntas) + 1):
+   for i in range(1, len(perguntas) + 1):
+
+        pergunta_atual = perguntas[i - 1]
 
         texto += (
-            f"\n{i}. {perguntas[i-1]}\n"
+            f"\n{i}. {pergunta_atual['pergunta']}\n"
             f"Resposta: {dados.get(f'q{i}', 'Não respondeu')}\n"
         )
-
 
     return texto
 
@@ -2960,11 +3000,11 @@ def main():
 
 
     application.add_handler(
-        CallbackQueryHandler(
-            responder,
-            pattern=r"\d+_(sim|nao)"
-        )
+    CallbackQueryHandler(
+        responder,
+        pattern=r"^\d+_opcao_\d+$"
     )
+)
 
 
     application.add_handler(
