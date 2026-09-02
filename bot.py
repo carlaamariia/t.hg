@@ -1718,7 +1718,6 @@ async def montar_ficha(
         "Não informado"
     )
 
-
     perfil_extra = (
         await texto_perfil(
             context,
@@ -1729,7 +1728,6 @@ async def montar_ficha(
         f"🆔 ID Telegram: {user_id}\n"
     )
 
-
     texto = (
         f"{NOME_GUARDIA}\n\n"
         "🧪 FICHA DE ALUNO\n\n"
@@ -1739,8 +1737,7 @@ async def montar_ficha(
         "📌 Status: aguardando avaliação\n"
     )
 
-
-   for i in range(1, len(perguntas) + 1):
+    for i in range(1, len(perguntas) + 1):
 
         pergunta_atual = perguntas[i - 1]
 
