@@ -61,34 +61,214 @@ links_enviados = {}
 historico_links = {}
 alunos_no_oficial = {}
 
-# ================= PERGUNTAS =================
+# ================= PERGUNTAS DA TRIAGEM =================
+
 perguntas = [
-    "📚 Você gosta de romance?",
-    "🖤 Você gosta de Dark Romance?",
-    "✨ Você gosta de fantasia?",
-    "📖 Você gosta de histórias de escola/adolescentes (Young Adult)?",
-    "🌶️ Você gosta de livros hot/+18?",
-    "👻 Você gosta de terror/horror?",
-    "🔍 Você gosta de suspense/thriller?",
-    "⚔️ Você gosta de Enemies to Lovers?",
-    "💥 Você gosta de Rivals to Lovers?",
-    "⏳ Você gosta de Age Gap/diferença de idade?",
-    "🩶 Você gosta de personagens moralmente cinzentos?",
-    "🖤 Você gosta de anti-heróis?",
-    "💔 Você gosta de drama emocional forte?",
-    "🔺 Você gosta de triângulo amoroso?",
-    "🌑 Você gosta de temas sombrios?",
-    "🔥 Você gosta de histórias intensas/pesadas?",
-    "🎭 Você gosta de plot twist/reviravoltas?",
-    "💍 Você gosta de final feliz?",
-    "📚 Você gosta de séries/sagas longas?",
-    "📘 Você prefere livros únicos?",
-    "🔁 Você costuma reler livros favoritos?",
-    "🆕 Você gosta de descobrir livros novos?",
-    "⚡ Você prefere leitura rápida?",
-    "📖 Você costuma ler com frequência?",
-    "⏳ Você tem paciência para aguardar pedidos?",
-    "📦 Você entende que nem todos os livros estarão disponíveis?",
+    {
+        "pergunta": "📚 Qual gênero literário você mais gosta de ler?",
+        "opcoes": [
+            "💕 Romance",
+            "🧙 Fantasia",
+            "🔪 Suspense/Terror",
+            "🎭 Drama",
+            "🌈 Gosto de vários gêneros"
+        ]
+    },
+
+    {
+        "pergunta": "💕 Como você prefere o desenvolvimento de um romance?",
+        "opcoes": [
+            "🐢 Bem lento e detalhado",
+            "🔥 Intenso desde o começo",
+            "⚖️ Um pouco dos dois",
+            "💫 O romance pode ser secundário"
+        ]
+    },
+
+    {
+        "pergunta": "🔥 Você gosta de livros com cenas hot/18+?",
+        "opcoes": [
+            "🔥 Sim, gosto bastante",
+            "💕 Sim, mas sem exageros",
+            "📖 Prefiro quando não tem",
+            "🚫 Não gosto"
+        ]
+    },
+
+    {
+        "pergunta": "🖤 O que você acha de Dark Romance?",
+        "opcoes": [
+            "🖤 Adoro",
+            "🥀 Gosto, mas depende da história",
+            "🤔 Nunca li",
+            "🚫 Não faz meu estilo"
+        ]
+    },
+
+    {
+        "pergunta": "🧙 Você gosta de histórias com magia, criaturas sobrenaturais ou mundos fantásticos?",
+        "opcoes": [
+            "✨ Amo fantasia",
+            "🪄 Gosto bastante",
+            "🌙 Às vezes",
+            "📚 Prefiro histórias realistas"
+        ]
+    },
+
+    {
+        "pergunta": "🔪 Qual dessas opções mais combina com você?",
+        "opcoes": [
+            "🔍 Mistérios e investigação",
+            "👻 Terror e medo",
+            "⚡ Suspense e tensão",
+            "💕 Prefiro romance e drama"
+        ]
+    },
+
+    {
+        "pergunta": "⚔️ O que você acha de protagonistas moralmente duvidosos ou anti-heróis?",
+        "opcoes": [
+            "🖤 Adoro personagens assim",
+            "🔥 Gosto quando são bem escritos",
+            "🤔 Depende do personagem",
+            "👑 Prefiro protagonistas bonzinhos"
+        ]
+    },
+
+    {
+        "pergunta": "💘 Qual dinâmica de romance mais chama sua atenção?",
+        "opcoes": [
+            "🔥 Enemies to Lovers",
+            "⚡ Rivals to Lovers",
+            "💍 Fake Dating",
+            "🫶 Friends to Lovers",
+            "💫 Qualquer uma, se a história for boa"
+        ]
+    },
+
+    {
+        "pergunta": "🥀 Você gosta de histórias emocionalmente intensas?",
+        "opcoes": [
+            "😭 Amo sofrer com os personagens",
+            "💔 Gosto bastante",
+            "🌷 Prefiro algo equilibrado",
+            "😊 Prefiro histórias leves"
+        ]
+    },
+
+    {
+        "pergunta": "⚡ O quanto você gosta de plot twists?",
+        "opcoes": [
+            "🤯 Quero ser enganado até a última página",
+            "🔥 Quanto mais reviravoltas, melhor",
+            "✨ Algumas são suficientes",
+            "📖 Prefiro histórias previsíveis"
+        ]
+    },
+
+    {
+        "pergunta": "👑 Qual tipo de protagonista você prefere?",
+        "opcoes": [
+            "🖤 Anti-herói poderoso",
+            "👑 Pessoa rica/poderosa",
+            "🌷 Pessoa comum e identificável",
+            "🧙 Herói ou heroína de fantasia",
+            "💫 Não tenho preferência"
+        ]
+    },
+
+    {
+        "pergunta": "🕰️ Você gosta de livros ambientados em outras épocas?",
+        "opcoes": [
+            "👑 Amo romances de época",
+            "📜 Gosto bastante",
+            "🤔 Às vezes",
+            "🏙️ Prefiro histórias atuais"
+        ]
+    },
+
+    {
+        "pergunta": "🌎 Você gosta de conhecer outras culturas através dos livros?",
+        "opcoes": [
+            "🌎 Sim, adoro",
+            "📚 Gosto bastante",
+            "✨ Depende do livro",
+            "🏠 Prefiro histórias mais familiares"
+        ]
+    },
+
+    {
+        "pergunta": "📖 Você prefere...",
+        "opcoes": [
+            "📕 Livro único",
+            "📚 Duologia",
+            "📚📚 Trilologias e séries",
+            "🏰 Séries enormes com vários livros",
+            "💫 Não tenho preferência"
+        ]
+    },
+
+    {
+        "pergunta": "🐢 Qual ritmo de leitura você prefere?",
+        "opcoes": [
+            "⚡ Rápido e viciante",
+            "🔥 Ritmo médio",
+            "🐢 Lento e detalhado",
+            "📖 Depende da história"
+        ]
+    },
+
+    {
+        "pergunta": "📚 O que mais faz você continuar lendo um livro?",
+        "opcoes": [
+            "💕 Romance",
+            "🧩 Mistério e curiosidade",
+            "⚔️ Ação e aventura",
+            "🥀 Emoções e personagens",
+            "🌎 O universo e a construção da história"
+        ]
+    },
+
+    {
+        "pergunta": "🚪 Quando um livro começa devagar, você...",
+        "opcoes": [
+            "⏳ Dou bastante tempo para a história desenvolver",
+            "📖 Continuo se os personagens forem bons",
+            "🤔 Leio mais alguns capítulos",
+            "🚪 Abandono rapidamente"
+        ]
+    },
+
+    {
+        "pergunta": "🔎 Como você costuma escolher sua próxima leitura?",
+        "opcoes": [
+            "⭐ Pela avaliação/recomendação",
+            "🖼️ Pela capa e sinopse",
+            "👤 Pela indicação de alguém",
+            "📚 Pelo autor",
+            "🎲 Escolho aleatoriamente"
+        ]
+    },
+
+    {
+        "pergunta": "⏳ Quando você recebe um livro que estava esperando, você...",
+        "opcoes": [
+            "🚀 Começo imediatamente",
+            "📖 Começo assim que tenho tempo",
+            "📚 Coloco na lista de próximas leituras",
+            "🐢 Leio quando estiver no clima"
+        ]
+    },
+
+    {
+        "pergunta": "🤝 Para finalizar: você entende e respeita que nem todos os livros estarão disponíveis no grupo?",
+        "opcoes": [
+            "💚 Sim, com certeza!",
+            "📚 Sim, entendo que existem limites",
+            "🤔 Sim, mas posso perguntar por alternativas",
+            "❤️ Claro, respeito as regras da biblioteca"
+        ]
+    }
 ]
 
 # ================= SALVAR / CARREGAR =================
