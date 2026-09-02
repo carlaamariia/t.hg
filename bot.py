@@ -676,15 +676,31 @@ async def novo_membro(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if user_key in links_enviados:
 
                 try:
-                    await context.bot.delete_message(
-                        chat_id=user_id,
-                        message_id=links_enviados[user_key]
+
+                    registro_link = links_enviados[user_key]
+
+                    message_id = registro_link.get(
+                        "message_id"
                     )
 
-                except Exception as erro:
-                    print("Erro ao apagar link do PV:", erro)
+                    if message_id:
 
-                links_enviados.pop(user_key, None)
+                        await context.bot.delete_message(
+                            chat_id=user_id,
+                            message_id=message_id
+                        )
+
+                except Exception as erro:
+
+                    print(
+                        "Erro ao apagar link do PV:",
+                        erro
+                    )
+
+                links_enviados.pop(
+                    user_key,
+                    None
+                )
 
             salvar_dados()
 
@@ -1906,6 +1922,7 @@ async def criar_link_unico(context):
 
     return link.invite_link
 
+# ================= ENVIAR LINK INDIVIDUAL =================
 
 async def enviar_link_unico(
     context,
@@ -1913,13 +1930,27 @@ async def enviar_link_unico(
     nome,
     username
 ):
+
     user_key = k(user_id)
+
+    # Cria um convite que exige solicitação de entrada
     link = await criar_link_unico(context)
 
-    keyboard = [[InlineKeyboardButton(config_acesso["texto_botao"], url=link)]]
-    texto = f"{NOME_GUARDIA}\n\n{config_acesso['mensagem']}"
+    keyboard = [[
+        InlineKeyboardButton(
+            config_acesso["texto_botao"],
+            url=link
+        )
+    ]]
 
+    texto = (
+        f"{NOME_GUARDIA}\n\n"
+        f"{config_acesso['mensagem']}"
+    )
+
+    # Envia o acesso para o aluno
     if config_acesso.get("imagem_file_id"):
+
         msg = await context.bot.send_photo(
             chat_id=user_id,
             photo=config_acesso["imagem_file_id"],
@@ -1927,7 +1958,9 @@ async def enviar_link_unico(
             reply_markup=InlineKeyboardMarkup(keyboard),
             protect_content=True
         )
+
     else:
+
         msg = await context.bot.send_message(
             chat_id=user_id,
             text=texto,
@@ -1935,16 +1968,213 @@ async def enviar_link_unico(
             protect_content=True
         )
 
-    links_enviados[user_key] = msg.message_id
+    # ================= REGISTRAR LINK =================
+
+    links_enviados[user_key] = {
+        "message_id": msg.message_id,
+        "invite_link": link
+    }
 
     historico_links[user_key] = {
         "nome": nome,
         "username": username,
-        "status": "Convite enviado em botão"
+        "invite_link": link,
+        "status": "Convite individual enviado"
     }
 
     salvar_dados()
 
+# ================= SOLICITAÇÃO DE ENTRADA =================
+
+async def processar_solicitacao_entrada(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    request = update.chat_join_request
+
+    user_id = request.from_user.id
+    user_key = k(user_id)
+
+    print(
+        f"🔐 Solicitação de entrada recebida: "
+        f"{user_id}"
+    )
+
+    # Só aceita solicitações do grupo oficial
+    if request.chat.id != GRUPO_OFICIAL_ID:
+        return
+
+    # ================= VERIFICAR APROVAÇÃO =================
+
+    if user_key not in alunos_liberados:
+
+        print(
+            f"❌ Entrada recusada: "
+            f"{user_id} não está liberado."
+        )
+
+        try:
+            await context.bot.decline_chat_join_request(
+                chat_id=GRUPO_OFICIAL_ID,
+                user_id=user_id
+            )
+        except Exception as erro:
+            print(
+                f"Erro ao recusar solicitação: {erro}"
+            )
+
+        return
+
+    # ================= VERIFICAR LINK =================
+
+    registro_link = links_enviados.get(user_key)
+
+    if not registro_link:
+
+        print(
+            f"❌ Entrada recusada: "
+            f"nenhum link registrado para {user_id}."
+        )
+
+        try:
+            await context.bot.decline_chat_join_request(
+                chat_id=GRUPO_OFICIAL_ID,
+                user_id=user_id
+            )
+        except Exception as erro:
+            print(
+                f"Erro ao recusar solicitação: {erro}"
+            )
+
+        return
+
+    invite_link_usado = request.invite_link.invite_link
+
+    invite_link_autorizado = registro_link.get(
+        "invite_link"
+    )
+
+    # ================= COMPARAR LINK =================
+
+    if invite_link_usado != invite_link_autorizado:
+
+        print(
+            f"❌ Entrada recusada: link inválido "
+            f"para {user_id}."
+        )
+
+        try:
+            await context.bot.decline_chat_join_request(
+                chat_id=GRUPO_OFICIAL_ID,
+                user_id=user_id
+            )
+        except Exception as erro:
+            print(
+                f"Erro ao recusar solicitação: {erro}"
+            )
+
+        return
+
+    # ================= AUTORIZAÇÃO FINAL =================
+
+    try:
+
+        await context.bot.approve_chat_join_request(
+            chat_id=GRUPO_OFICIAL_ID,
+            user_id=user_id
+        )
+
+        print(
+            f"✅ Entrada aprovada automaticamente: "
+            f"{user_id}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"❌ Erro ao aprovar {user_id}: {erro}"
+        )
+
+        return
+
+    # ================= ATUALIZAR STATUS =================
+
+    if user_key in alunos_liberados:
+
+        alunos_liberados[user_key]["status"] = (
+            "Entrou no grupo oficial"
+        )
+
+    if user_key in historico_links:
+
+        historico_links[user_key]["status"] = (
+            "Utilizado e entrou no grupo oficial"
+        )
+
+    alunos_no_oficial[user_key] = {
+        "nome": request.from_user.first_name,
+        "username": request.from_user.username or "Sem usuário",
+        "id": user_id,
+        "status": "Entrou após aprovação automática"
+    }
+
+    salvar_dados()
+
+    # ================= APAGAR MENSAGEM DO LINK =================
+
+    try:
+
+        message_id = registro_link.get(
+            "message_id"
+        )
+
+        if message_id:
+
+            await context.bot.delete_message(
+                chat_id=user_id,
+                message_id=message_id
+            )
+
+            print(
+                f"🗑️ Mensagem do convite apagada "
+                f"para {user_id}"
+            )
+
+    except Exception as erro:
+
+        print(
+            f"⚠️ Não foi possível apagar "
+            f"a mensagem do convite: {erro}"
+        )
+
+    # ================= REVOGAR LINK DO TELEGRAM =================
+
+    try:
+
+        await context.bot.revoke_chat_invite_link(
+            chat_id=GRUPO_OFICIAL_ID,
+            invite_link=invite_link_autorizado
+        )
+
+        print(
+            f"🔒 Link revogado com sucesso para {user_id}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"⚠️ Não foi possível revogar o link: {erro}"
+        )
+
+    # ================= REMOVER REGISTRO =================
+
+    links_enviados.pop(
+        user_key,
+        None
+    )
+
+    salvar_dados()
 # ================= COMANDO VERIFICAR =================
 async def verificar_usuario(
     update: Update,
@@ -2946,14 +3176,12 @@ def main():
         )
     )
 
-
     application.add_handler(
         CommandHandler(
             "verificar",
             verificar_usuario
         )
     )
-
 
     application.add_handler(
         MessageHandler(
@@ -2962,6 +3190,11 @@ def main():
         )
     )
 
+    application.add_handler(
+        ChatJoinRequestHandler(
+            processar_solicitacao_entrada
+        )
+    )
 
     application.add_handler(
         MessageHandler(
@@ -2970,14 +3203,12 @@ def main():
         )
     )
 
-
     application.add_handler(
         MessageHandler(
             filters.PHOTO,
             receber_midia
         )
     )
-
 
     application.add_handler(
         CallbackQueryHandler(
@@ -2995,14 +3226,12 @@ def main():
         )
     )
 
-
     application.add_handler(
     CallbackQueryHandler(
         responder,
         pattern=r"^\d+_opcao_\d+$"
     )
 )
-
 
     application.add_handler(
         CallbackQueryHandler(
@@ -3011,20 +3240,18 @@ def main():
         )
     )
 
-
     print(
         "🦉 Coruja da Biblioteca rodando com fichas organizadas por setor..."
     )
 
-
-    application.run_polling(
+       application.run_polling(
         allowed_updates=[
             "message",
             "callback_query",
-            "chat_member"
+            "chat_member",
+            "chat_join_request"
         ]
     )
-
 
 if __name__ == "__main__":
     main()
