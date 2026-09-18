@@ -1,4 +1,4 @@
-import json
+
 import os
 
 from telegram import (
@@ -1913,14 +1913,35 @@ async def verificar_perfil(context, user_id):
     return tem_foto, tem_usuario, username
 
 
-async def criar_link_unico(context):
+async def criar_link_unico(context, user_id):
+    """Cria um convite exclusivo para o ID aprovado.
 
-    link = await context.bot.create_chat_invite_link(
+    O Telegram não prende o URL a um usuário por conta própria; a trava real
+    é feita em processar_solicitacao_entrada, comparando o ID e o link usado.
+    """
+    user_key = k(user_id)
+
+    # Se existir convite anterior ainda registrado para este ID, revoga antes
+    # de criar outro. Assim cada aluno mantém somente um acesso ativo.
+    registro_anterior = links_enviados.get(user_key)
+    if registro_anterior:
+        link_anterior = registro_anterior.get("invite_link")
+        if link_anterior:
+            try:
+                await context.bot.revoke_chat_invite_link(
+                    chat_id=GRUPO_OFICIAL_ID,
+                    invite_link=link_anterior
+                )
+            except Exception as erro:
+                print(f"⚠️ Não foi possível revogar convite anterior de {user_id}: {erro}")
+
+    convite = await context.bot.create_chat_invite_link(
         chat_id=GRUPO_OFICIAL_ID,
-        creates_join_request=True
+        creates_join_request=True,
+        name=f"acesso_{user_id}"
     )
 
-    return link.invite_link
+    return convite.invite_link
 
 # ================= ENVIAR LINK INDIVIDUAL =================
 
@@ -1934,7 +1955,7 @@ async def enviar_link_unico(
     user_key = k(user_id)
 
     # Cria um convite que exige solicitação de entrada
-    link = await criar_link_unico(context)
+    link = await criar_link_unico(context, user_id)
 
     keyboard = [[
         InlineKeyboardButton(
@@ -2049,7 +2070,11 @@ async def processar_solicitacao_entrada(
 
         return
 
-    invite_link_usado = request.invite_link.invite_link
+    invite_link_usado = (
+        request.invite_link.invite_link
+        if request.invite_link
+        else None
+    )
 
     invite_link_autorizado = registro_link.get(
         "invite_link"
@@ -2074,6 +2099,27 @@ async def processar_solicitacao_entrada(
                 f"Erro ao recusar solicitação: {erro}"
             )
 
+        return
+
+    # ================= CONSUMIR O CONVITE =================
+
+    # O ID correto chegou usando o link correto. Revogamos imediatamente,
+    # antes da aprovação, para que o mesmo URL não gere novas solicitações.
+    try:
+        await context.bot.revoke_chat_invite_link(
+            chat_id=GRUPO_OFICIAL_ID,
+            invite_link=invite_link_autorizado
+        )
+        print(f"🔒 Convite consumido/revogado para {user_id}")
+    except Exception as erro:
+        print(f"❌ Não foi possível consumir o convite de {user_id}: {erro}")
+        try:
+            await context.bot.decline_chat_join_request(
+                chat_id=GRUPO_OFICIAL_ID,
+                user_id=user_id
+            )
+        except Exception:
+            pass
         return
 
     # ================= AUTORIZAÇÃO FINAL =================
@@ -2146,25 +2192,6 @@ async def processar_solicitacao_entrada(
         print(
             f"⚠️ Não foi possível apagar "
             f"a mensagem do convite: {erro}"
-        )
-
-    # ================= REVOGAR LINK DO TELEGRAM =================
-
-    try:
-
-        await context.bot.revoke_chat_invite_link(
-            chat_id=GRUPO_OFICIAL_ID,
-            invite_link=invite_link_autorizado
-        )
-
-        print(
-            f"🔒 Link revogado com sucesso para {user_id}"
-        )
-
-    except Exception as erro:
-
-        print(
-            f"⚠️ Não foi possível revogar o link: {erro}"
         )
 
     # ================= REMOVER REGISTRO =================
@@ -3220,7 +3247,7 @@ def main():
                 r"reverificar_|"
                 r"liberar_forcado_|"
                 r"ver_aprovado_|"
-                r"ver_reprovado_"
+                r"ver_reprovado_|"
                 r"personalizar_"
             )
         )
@@ -3244,7 +3271,7 @@ def main():
         "🦉 Coruja da Biblioteca rodando com fichas organizadas por setor..."
     )
 
-       application.run_polling(
+    application.run_polling(
         allowed_updates=[
             "message",
             "callback_query",
